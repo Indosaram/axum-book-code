@@ -14,3 +14,4 @@ tracing-subscriber = "0.3.17"
 sea-orm = { version = "0.12.3", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros" ] }
 serde_json = "1.0.107"
 serde = "1.0.189"
+dotenvy = "0.15.7"

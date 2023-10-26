@@ -1,3 +1,3 @@
-pub mod db;
+pub mod init;
 
-pub use db::init_db;
+pub use init::init_db;

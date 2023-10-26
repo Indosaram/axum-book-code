@@ -10,9 +10,12 @@ use sea_orm::{
     ModelTrait, QueryFilter,
 };
 
-use crate::entities::{
-    prelude::Users,
-    users::{ActiveModel, Column, Model},
+use crate::{
+    entities::{
+        prelude::Users,
+        users::{ActiveModel, Column, Model},
+    },
+    utils::{app_error::AppError, hash::hash_password},
 };
 
 pub async fn get_user(
@@ -42,16 +45,18 @@ pub struct UpsertModel {
 pub async fn post_user(
     State(conn): State<DatabaseConnection>,
     Json(user): Json<UpsertModel>,
-) -> Json<Model> {
+) -> Result<Json<Model>, AppError> {
+    let hashed_password = hash_password(&user.password.unwrap())?;
+
     let new_user = ActiveModel {
         id: ActiveValue::NotSet,
         username: ActiveValue::Set(user.username.unwrap()),
-        password: ActiveValue::Set(user.password.unwrap()),
+        password: ActiveValue::Set(hashed_password),
     };
 
     let result = new_user.insert(&conn).await.unwrap();
 
-    Json(result)
+    Ok(Json(result))
 }
 
 pub async fn put_user(
@@ -77,6 +82,7 @@ pub async fn delete_user(
     State(conn): State<DatabaseConnection>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Json<&'static str> {
+    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
     let mut condition = Condition::any();
 
     if let Some(id) = params.get("id") {

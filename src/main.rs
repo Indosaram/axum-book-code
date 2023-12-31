@@ -64,8 +64,6 @@ async fn main() {
         .layer(TimeoutLayer::new(Duration::from_millis(3000)))
         .layer(TraceLayer::new_for_http());
 
-    axum::Server::bind(&"127.0.0.1:8000".parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }

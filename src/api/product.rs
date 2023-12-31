@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use axum::{
     extract::{Query, State},
+    http::StatusCode,
     Json,
 };
 
@@ -10,19 +11,30 @@ use sea_orm::{
     ModelTrait, QueryFilter,
 };
 
-use crate::entities::{
-    prelude::Product,
-    product::{ActiveModel, Column, Model},
+use crate::{
+    entities::{
+        prelude::Product,
+        product::{ActiveModel, Column, Model},
+    },
+    utils::app_error::AppError,
 };
 
 pub async fn get_product(
     State(conn): State<DatabaseConnection>,
     Query(params): Query<HashMap<String, String>>,
-) -> Json<Vec<Model>> {
+) -> Result<Json<Vec<Model>>, AppError> {
     let mut condition = Condition::all();
 
     if let Some(id) = params.get("id") {
-        condition = condition.add(Column::Id.eq(id.parse::<i32>().unwrap()));
+        match id.parse::<i32>() {
+            Ok(parsed_id) => condition = condition.add(Column::Id.eq(parsed_id)),
+            Err(_) => {
+                return Err(AppError::new(
+                    StatusCode::BAD_REQUEST,
+                    "ID must be an integer",
+                ))
+            }
+        }
     }
 
     if let Some(title) = params.get("title") {
@@ -35,7 +47,13 @@ pub async fn get_product(
         condition = condition.add(Column::Category.contains(category));
     }
 
-    Json(Product::find().filter(condition).all(&conn).await.unwrap())
+    match Product::find().filter(condition).all(&conn).await {
+        Ok(products) => Ok(Json(products)),
+        Err(_) => Err(AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database error",
+        )),
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -49,7 +67,7 @@ pub struct UpsertModel {
 pub async fn post_product(
     State(conn): State<DatabaseConnection>,
     Json(product): Json<UpsertModel>,
-) -> Json<Model> {
+) -> Result<Json<Model>, AppError> {
     let new_product = ActiveModel {
         id: ActiveValue::NotSet,
         title: ActiveValue::Set(product.title.unwrap()),
@@ -57,18 +75,28 @@ pub async fn post_product(
         category: ActiveValue::Set(product.category.unwrap()),
     };
 
-    Json(new_product.insert(&conn).await.unwrap())
+    match new_product.insert(&conn).await {
+        Ok(inserted_product) => Ok(Json(inserted_product)),
+        Err(_) => Err(AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database error",
+        )),
+    }
 }
 
 pub async fn put_product(
     State(conn): State<DatabaseConnection>,
     Json(product): Json<UpsertModel>,
-) -> Json<Model> {
-    let result = Product::find_by_id(product.id.unwrap())
-        .one(&conn)
-        .await
-        .unwrap()
-        .unwrap();
+) -> Result<Json<Model>, AppError> {
+    let result = match Product::find_by_id(product.id.unwrap()).one(&conn).await {
+        Ok(result) => result.ok_or(AppError::new(StatusCode::NOT_FOUND, "Product not found"))?,
+        Err(_) => {
+            return Err(AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database error",
+            ))
+        }
+    };
 
     let new_product = ActiveModel {
         id: ActiveValue::Set(result.id),
@@ -77,13 +105,19 @@ pub async fn put_product(
         category: ActiveValue::Set(product.category.unwrap_or(result.category)),
     };
 
-    Json(new_product.update(&conn).await.unwrap())
+    match new_product.update(&conn).await {
+        Ok(updated_product) => Ok(Json(updated_product)),
+        Err(_) => Err(AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database error",
+        )),
+    }
 }
 
 pub async fn delete_product(
     State(conn): State<DatabaseConnection>,
     Query(params): Query<HashMap<String, String>>,
-) -> Json<&'static str> {
+) -> Result<Json<&'static str>, AppError> {
     let mut condition = Condition::any();
 
     if let Some(id) = params.get("id") {
@@ -100,14 +134,21 @@ pub async fn delete_product(
         condition = condition.add(Column::Category.contains(category));
     }
 
-    let product = Product::find()
-        .filter(condition)
-        .one(&conn)
-        .await
-        .unwrap()
-        .unwrap();
+    let product = match Product::find().filter(condition).one(&conn).await {
+        Ok(product) => product.ok_or(AppError::new(StatusCode::NOT_FOUND, "Product not found"))?,
+        Err(_) => {
+            return Err(AppError::new(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database error",
+            ))
+        }
+    };
 
-    product.delete(&conn).await.unwrap();
-
-    Json("Deleted")
+    match product.delete(&conn).await {
+        Ok(_) => Ok(Json("Deleted")),
+        Err(_) => Err(AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database error",
+        )),
+    }
 }

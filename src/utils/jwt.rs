@@ -2,7 +2,7 @@ use super::app_error::AppError;
 use axum::{
     http::{HeaderMap, Request, StatusCode},
     middleware::Next,
-    response::Response,
+    response::Response, body::Body,
 };
 use chrono::Duration;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
@@ -67,10 +67,10 @@ pub fn validate_token(token: &str) -> Result<Claims, AppError> {
     })
 }
 
-pub async fn authenticate<T>(
+pub async fn authenticate(
     headers: HeaderMap,
-    request: Request<T>,
-    next: Next<T>,
+    request: Request<Body>,
+    next: Next,
 ) -> Result<Response, AppError> {
     if let Some(value) = headers.get("Authorization") {
         let token = value.to_str().map_err(|err| {
@@ -90,7 +90,7 @@ pub async fn authenticate<T>(
     } else {
         Err(AppError::new(
             StatusCode::UNAUTHORIZED,
-            "not authenticated!",
+            "Not authenticated!",
         ))
     }
 }

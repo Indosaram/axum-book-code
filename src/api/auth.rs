@@ -21,17 +21,16 @@ pub async fn login(
         .filter(Column::Username.eq(request_user.username))
         .one(&db)
         .await
-        .map_err(|error| {
-            eprintln!("Error getting user by username: {:?}", error);
+        .map_err(|_| {
             AppError::new(
                 StatusCode::INTERNAL_SERVER_ERROR,
-                "Error logging in, please try again later",
+                "Database error",
             )
         })?
         .ok_or_else(|| {
             AppError::new(
-                StatusCode::BAD_REQUEST,
-                "incorrect username and/or password",
+                StatusCode::NOT_FOUND,
+                "User not found",
             )
         })?;
 

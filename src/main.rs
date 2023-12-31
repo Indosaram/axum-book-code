@@ -18,7 +18,7 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use api::auth::login;
 use api::category::{delete_category, get_category, post_category};
 use api::product::{delete_product, get_product, post_product, put_product};
-use api::users::{delete_user, get_user, post_user, put_user};
+use api::users::{delete_user, get_users, post_user, put_user};
 
 use db::init_db;
 
@@ -40,7 +40,7 @@ async fn main() {
     let app = Router::new()
         .route(
             "/users",
-            get(get_user)
+            get(get_users)
                 .post(post_user)
                 .put(put_user)
                 .delete(delete_user),
@@ -64,8 +64,6 @@ async fn main() {
         .layer(TimeoutLayer::new(Duration::from_millis(3000)))
         .layer(TraceLayer::new_for_http());
 
-    axum::Server::bind(&"127.0.0.1:8000".parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000").await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }

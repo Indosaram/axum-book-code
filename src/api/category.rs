@@ -12,10 +12,7 @@ use sea_orm::{
 };
 
 use crate::{
-    entities::{
-        category::{ActiveModel, Column, Model},
-        prelude::Category,
-    },
+    entities::category::{ActiveModel, Column, Entity, Model},
     utils::app_error::AppError,
 };
 
@@ -29,7 +26,7 @@ pub async fn get_category(
         condition = condition.add(Column::Name.contains(name));
     }
 
-    match Category::find().filter(condition).all(&conn).await {
+    match Entity::find().filter(condition).all(&conn).await {
         Ok(categories) => Ok(Json(categories)),
         Err(_) => Err(AppError::new(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -59,13 +56,15 @@ pub async fn delete_category(
     State(conn): State<DatabaseConnection>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<&'static str>, AppError> {
-    let mut condition = Condition::any();
-
-    if let Some(name) = params.get("name") {
-        condition = condition.add(Column::Name.contains(name));
+    if params.get("name").is_none() {
+        return Err(AppError::new(StatusCode::BAD_REQUEST, "Name is required"));
     }
 
-    let category = match Category::find().filter(condition).one(&conn).await {
+    let category = match Entity::find()
+        .filter(Condition::any().add(Column::Name.contains(params.get("name").unwrap())))
+        .one(&conn)
+        .await
+    {
         Ok(Some(category)) => category,
         Ok(None) => return Err(AppError::new(StatusCode::NOT_FOUND, "Category not found")),
         Err(_) => {

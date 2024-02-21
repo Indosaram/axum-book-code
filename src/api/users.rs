@@ -7,20 +7,19 @@ use axum::{
 };
 
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, EntityTrait, InsertResult, Order, QueryFilter, QueryOrder
+    ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, EntityTrait, Order,
+    QueryFilter, QueryOrder,
 };
 
 use crate::{
-    entities::users::{
-        ActiveModel as UsersActiveModel, Column, Entity as UsersEntity, Model as UsersModel,
-    },
+    entities::users::{ActiveModel, Column, Entity, Model},
     utils::{app_error::AppError, hash::hash_password},
 };
 
 pub async fn get_users(
     State(conn): State<DatabaseConnection>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Vec<UsersModel>>, AppError> {
+) -> Result<Json<Vec<Model>>, AppError> {
     let mut condition = Condition::all();
 
     if let Some(id) = params.get("id") {
@@ -39,7 +38,7 @@ pub async fn get_users(
         condition = condition.add(Column::Username.contains(username));
     }
 
-    match UsersEntity::find()
+    match Entity::find()
         .filter(condition)
         .order_by(Column::Username, Order::Asc)
         .all(&conn)
@@ -63,30 +62,22 @@ pub struct UpsertModel {
 pub async fn post_user(
     State(conn): State<DatabaseConnection>,
     Json(user): Json<UpsertModel>,
-) -> Result<Json<UsersModel>, AppError> {
-    // Check if password is provided
-    let password = match &user.password {
-        Some(password) => password,
-        None => {
-            return Err(AppError::new(
-                StatusCode::BAD_REQUEST,
-                "Password not provided",
-            ))
-        }
-    };
+) -> Result<Json<Model>, AppError> {
+    if user.username.is_none() || user.password.is_none() {
+        return Err(AppError::new(
+            StatusCode::BAD_REQUEST,
+            "Username or password not provided",
+        ));
+    }
 
-    let hashed_password = hash_password(password)?;
+    let hashed_password = hash_password(&user.password.unwrap())?;
 
-    let new_user = UsersActiveModel {
+    let new_user = ActiveModel {
         id: ActiveValue::NotSet,
-        username: ActiveValue::Set(user.username.unwrap_or_default()),
+        username: ActiveValue::Set(user.username.unwrap()),
         password: ActiveValue::Set(hashed_password),
     };
 
-    let result: InsertResult<UsersActiveModel> =
-        UsersEntity::insert(new_user).exec(&conn).await.unwrap();
-
-    // Insert the new user into the database
     match new_user.insert(&conn).await {
         Ok(result) => Ok(Json(result)),
         Err(_) => Err(AppError::new(
@@ -99,8 +90,7 @@ pub async fn post_user(
 pub async fn put_user(
     State(conn): State<DatabaseConnection>,
     Json(user): Json<UpsertModel>,
-) -> Result<Json<UsersModel>, AppError> {
-    // Check if user id is provided
+) -> Result<Json<Model>, AppError> {
     let id = match user.id {
         Some(id) => id,
         None => {
@@ -111,8 +101,7 @@ pub async fn put_user(
         }
     };
 
-    // Fetch the existing user from the database
-    let found_user = match UsersEntity::find_by_id(id).one(&conn).await {
+    let found_user = match Entity::find_by_id(id).one(&conn).await {
         Ok(user) => user.ok_or(AppError::new(StatusCode::NOT_FOUND, "User not found"))?,
         Err(_) => {
             return Err(AppError::new(
@@ -122,7 +111,7 @@ pub async fn put_user(
         }
     };
 
-    let mut active_user: UsersActiveModel = found_user.into();
+    let mut active_user: ActiveModel = found_user.into();
     active_user.username = user
         .username
         .map(ActiveValue::Set)
@@ -132,7 +121,6 @@ pub async fn put_user(
         None => active_user.password,
     };
 
-    // Update the user in the database
     match active_user.update(&conn).await {
         Ok(result) => Ok(Json(result)),
         Err(_) => Err(AppError::new(
@@ -146,8 +134,6 @@ pub async fn delete_user(
     State(conn): State<DatabaseConnection>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<&'static str>, AppError> {
-    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-
     let id = match params.get("id") {
         Some(id) => id,
         None => {
@@ -158,7 +144,7 @@ pub async fn delete_user(
         }
     };
 
-    match UsersEntity::delete_by_id(
+    match Entity::delete_by_id(
         id.parse::<i32>()
             .map_err(|_| AppError::new(StatusCode::BAD_REQUEST, "ID must be an integer"))?,
     )

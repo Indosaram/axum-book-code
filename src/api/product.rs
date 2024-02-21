@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -12,49 +10,9 @@ use sea_orm::{
 };
 
 use crate::{
-    entities::{
-        prelude::Product,
-        product::{ActiveModel, Column, Model},
-    },
+    entities::product::{ActiveModel, Column, Entity, Model},
     utils::app_error::AppError,
 };
-
-pub async fn get_product(
-    State(conn): State<DatabaseConnection>,
-    Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Vec<Model>>, AppError> {
-    let mut condition = Condition::all();
-
-    if let Some(id) = params.get("id") {
-        match id.parse::<i32>() {
-            Ok(parsed_id) => condition = condition.add(Column::Id.eq(parsed_id)),
-            Err(_) => {
-                return Err(AppError::new(
-                    StatusCode::BAD_REQUEST,
-                    "ID must be an integer",
-                ))
-            }
-        }
-    }
-
-    if let Some(title) = params.get("title") {
-        condition = condition.add(Column::Title.contains(title));
-    }
-    if let Some(price) = params.get("price") {
-        condition = condition.add(Column::Price.contains(price));
-    }
-    if let Some(category) = params.get("category") {
-        condition = condition.add(Column::Category.contains(category));
-    }
-
-    match Product::find().filter(condition).all(&conn).await {
-        Ok(products) => Ok(Json(products)),
-        Err(_) => Err(AppError::new(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Database error",
-        )),
-    }
-}
 
 #[derive(serde::Deserialize)]
 pub struct UpsertModel {
@@ -62,6 +20,35 @@ pub struct UpsertModel {
     title: Option<String>,
     price: Option<i32>,
     category: Option<String>,
+}
+
+pub async fn get_product(
+    State(conn): State<DatabaseConnection>,
+    Query(params): Query<UpsertModel>,
+) -> Result<Json<Vec<Model>>, AppError> {
+    let mut condition = Condition::all();
+
+    if let Some(id) = params.id {
+        condition = condition.add(Column::Id.eq(id))
+    }
+
+    if let Some(title) = params.title {
+        condition = condition.add(Column::Title.contains(title));
+    }
+    if let Some(price) = params.price {
+        condition = condition.add(Column::Price.eq(price));
+    }
+    if let Some(category) = params.category {
+        condition = condition.add(Column::Category.contains(category));
+    }
+
+    match Entity::find().filter(condition).all(&conn).await {
+        Ok(products) => Ok(Json(products)),
+        Err(_) => Err(AppError::new(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database error",
+        )),
+    }
 }
 
 pub async fn post_product(
@@ -88,7 +75,7 @@ pub async fn put_product(
     State(conn): State<DatabaseConnection>,
     Json(product): Json<UpsertModel>,
 ) -> Result<Json<Model>, AppError> {
-    let result = match Product::find_by_id(product.id.unwrap()).one(&conn).await {
+    let result = match Entity::find_by_id(product.id.unwrap()).one(&conn).await {
         Ok(result) => result.ok_or(AppError::new(StatusCode::NOT_FOUND, "Product not found"))?,
         Err(_) => {
             return Err(AppError::new(
@@ -116,25 +103,27 @@ pub async fn put_product(
 
 pub async fn delete_product(
     State(conn): State<DatabaseConnection>,
-    Query(params): Query<HashMap<String, String>>,
+    Query(params): Query<UpsertModel>,
 ) -> Result<Json<&'static str>, AppError> {
     let mut condition = Condition::any();
 
-    if let Some(id) = params.get("id") {
-        condition = condition.add(Column::Id.eq(id.parse::<i32>().unwrap()));
+    if let Some(id) = params.id {
+        condition = condition.add(Column::Id.eq(id));
     }
 
-    if let Some(title) = params.get("title") {
+    if let Some(title) = params.title {
         condition = condition.add(Column::Title.contains(title));
     }
-    if let Some(price) = params.get("price") {
-        condition = condition.add(Column::Price.contains(price));
+
+    if let Some(price) = params.price {
+        condition = condition.add(Column::Price.eq(price));
     }
-    if let Some(category) = params.get("category") {
+
+    if let Some(category) = params.category {
         condition = condition.add(Column::Category.contains(category));
     }
 
-    let product = match Product::find().filter(condition).one(&conn).await {
+    let product = match Entity::find().filter(condition).one(&conn).await {
         Ok(product) => product.ok_or(AppError::new(StatusCode::NOT_FOUND, "Product not found"))?,
         Err(_) => {
             return Err(AppError::new(

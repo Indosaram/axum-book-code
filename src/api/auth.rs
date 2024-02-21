@@ -16,23 +16,13 @@ pub struct RequestUser {
 pub async fn login(
     State(db): State<DatabaseConnection>,
     Json(request_user): Json<RequestUser>,
-) -> Result<Json<String>, AppError> {
+) -> Result<String, AppError> {
     let user = Users::find()
         .filter(Column::Username.eq(request_user.username))
         .one(&db)
         .await
-        .map_err(|_| {
-            AppError::new(
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Database error",
-            )
-        })?
-        .ok_or_else(|| {
-            AppError::new(
-                StatusCode::NOT_FOUND,
-                "User not found",
-            )
-        })?;
+        .map_err(|_| AppError::new(StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?
+        .ok_or_else(|| AppError::new(StatusCode::NOT_FOUND, "User not found"))?;
 
     if !verify_password(&request_user.password, &user.password)? {
         return Err(AppError::new(
@@ -41,5 +31,5 @@ pub async fn login(
         ));
     }
 
-    Ok(Json(create_token(user.username.clone())?))
+    Ok(create_token(user.username.clone())?)
 }

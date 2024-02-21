@@ -32,7 +32,7 @@ impl MigrationTrait for Migration {
                     .col(
                         ColumnDef::new(Category::Name)
                             .string()
-                            .unique()
+                            .unique_key()
                             .not_null()
                             .primary_key(),
                     )

@@ -10,8 +10,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use tower_http::timeout::TimeoutLayer;
-use tower_http::trace::TraceLayer;
+use tower_http::{compression::CompressionLayer, timeout::TimeoutLayer, trace::TraceLayer};
 use tracing::info;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
@@ -38,13 +37,7 @@ async fn main() {
 
     info!("Starting server...");
     let app = Router::new()
-        .route(
-            "/users",
-            get(get_users)
-                .post(post_user)
-                .put(put_user)
-                .delete(delete_user),
-        )
+        .route("/users", get(get_users).put(put_user).delete(delete_user))
         .route(
             "/category",
             get(get_category)
@@ -60,10 +53,14 @@ async fn main() {
         )
         .route_layer(middleware::from_fn(authenticate))
         .route("/auth/login", post(login))
+        .route("/auth/signup", post(post_user))
         .with_state(conn)
-        .layer(TimeoutLayer::new(Duration::from_millis(3000)))
-        .layer(TraceLayer::new_for_http());
+        .layer(TimeoutLayer::new(Duration::from_millis(1000)))
+        .layer(TraceLayer::new_for_http())
+        .layer(CompressionLayer::new());
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000")
+        .await
+        .unwrap();
     axum::serve(listener, app).await.unwrap();
 }

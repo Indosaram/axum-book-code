@@ -6,11 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-axum = { version = "0.7.3", features = ["json"] }
+axum = { version = "0.7.3", features = ["json", "macros"] }
 bcrypt = "0.15.0"
 jsonwebtoken = "9.2.0"
 tokio = { version = "1.35.1", features = ["full"] }
-tower-http = { version = "0.5.0", features = ["full"] }
+tower-http = { version = "0.5.0", features = ["compression-gzip", "timeout", "trace"] }
 tower = { version = "0.4.13", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

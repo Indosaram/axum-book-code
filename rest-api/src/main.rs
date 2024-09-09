@@ -18,6 +18,7 @@ use api::auth::login;
 use api::category::{delete_category, get_category, post_category};
 use api::product::{delete_product, get_product, post_product, put_product};
 use api::users::{delete_user, get_users, post_user, put_user};
+use api::text::text;
 
 use db::init_db;
 
@@ -54,6 +55,7 @@ async fn main() {
         .route_layer(middleware::from_fn(authenticate))
         .route("/auth/login", post(login))
         .route("/auth/signup", post(post_user))
+        .route("/text", get(text))
         .with_state(conn)
         .layer(TimeoutLayer::new(Duration::from_millis(1000)))
         .layer(TraceLayer::new_for_http())

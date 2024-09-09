@@ -1,0 +1,9 @@
+[package]
+name = "websocket"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7.3", features = ["ws"] }
+tokio = { version = "1.28.2", features = ["full"] }
+futures = "0.3.28"

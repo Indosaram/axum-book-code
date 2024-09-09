@@ -1,0 +1,14 @@
+[package]
+name = "axum-project"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+axum = { version = "0.7.3", features = ["json", "macros"] }
+tokio = { version = "1.28.1", features = ["full"] }
+axum-test = "15.7.0"
+tower-http = { version = "0.5.2", features= ["full"] }
+sea-orm = { version = "1.0.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros", "mock" ] }
+dotenvy = "0.15.7"

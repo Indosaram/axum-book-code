@@ -1,0 +1,24 @@
+[package]
+name = "axum-project"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+axum = { version = "0.7.3", features = ["json", "macros"] }
+bcrypt = "0.15.0"
+jsonwebtoken = "9.2.0"
+tokio = { version = "1.35.1", features = ["full"] }
+tower-http = { version = "0.5.0", features = ["compression-gzip", "timeout", "trace"] }
+tower = { version = "0.4.13", features = ["full"] }
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+sea-orm = { version = "1.0.0", features = [ "sqlx-postgres", "runtime-tokio-native-tls", "macros" ] }
+serde_json = "1.0.108"
+serde = "1.0.193"
+dotenvy = "0.15.7"
+chrono = "0.4.31"
+lazy_static = "1.4.0"
+axum-test = "15.7.0"

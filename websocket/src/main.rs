@@ -39,7 +39,7 @@ async fn main() {
         .route_layer(middleware::from_fn(authenticate))
         .with_state(app);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 

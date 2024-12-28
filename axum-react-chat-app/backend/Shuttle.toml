@@ -1,0 +1,5 @@
+# Declare files that should be moved to the runtime container:
+[build]
+assets = [
+  "static/*", # include all files and subdirs in static/
+]

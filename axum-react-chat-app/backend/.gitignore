@@ -5,3 +5,4 @@ migration/target
 
 .shuttle-storage
 Secrets*.toml
+.shuttle*

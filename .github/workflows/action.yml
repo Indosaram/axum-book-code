@@ -1,10 +1,9 @@
 name: Shuttle Deploy
 
 on:
-    schedule:
-        - cron: '0 0 */28 * *'
-    workflow_dispatch:
-
+  schedule:
+    - cron: "0 0 */28 * *"
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -15,3 +14,4 @@ jobs:
         with:
           shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
           project-id: proj_01JF90BSDEENEZS33SYZT735GR
+        working-directory: axum-react-chat-app

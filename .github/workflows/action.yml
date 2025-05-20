@@ -14,8 +14,8 @@ jobs:
     steps:
       - uses: shuttle-hq/deploy-action@v2
         with:
-          shuttle-api-key: 8wWEvQ8J3I84KmhO
-          project-id: proj_0123456789
+          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          project-id: proj_01JF90BSDEENEZS33SYZT735GR
           working-directory: "axum-react-chat-app/backend"
           cargo-shuttle-version: "0.49.0"
           extra-args: --allow-dirty --debug

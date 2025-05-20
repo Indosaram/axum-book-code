@@ -17,8 +17,8 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 use api::auth::login;
 use api::category::{delete_category, get_category, post_category};
 use api::product::{delete_product, get_product, post_product, put_product};
-use api::users::{delete_user, get_users, post_user, put_user};
 use api::text::text;
+use api::users::{delete_user, get_users, post_user, put_user};
 
 use db::init_db;
 

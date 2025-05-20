@@ -11,19 +11,13 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Users::Table)
                     .if_not_exists()
-                    .col(
-                        ColumnDef::new(Users::Id)
-                            .integer()
-                            .not_null()
-                            .auto_increment()
-                            .primary_key(),
-                    )
+                    .col(ColumnDef::new(Users::Id).serial().primary_key())
                     .col(ColumnDef::new(Users::Username).string().not_null())
                     .col(ColumnDef::new(Users::Password).string().not_null())
                     .to_owned(),
             )
             .await?;
-    
+
         manager
             .create_table(
                 Table::create()
@@ -39,7 +33,7 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-    
+
         manager
             .create_table(
                 Table::create()
@@ -64,28 +58,25 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
-    
+
         Ok(())
     }
-    
 
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(Users::Table).if_exists().to_owned())
             .await?;
-    
+
         manager
             .drop_table(Table::drop().table(Product::Table).if_exists().to_owned())
             .await?;
-    
+
         manager
             .drop_table(Table::drop().table(Category::Table).if_exists().to_owned())
             .await?;
-    
-    
+
         Ok(())
     }
-    
 }
 
 #[derive(DeriveIden)]

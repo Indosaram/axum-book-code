@@ -3,6 +3,7 @@ name: Shuttle Deploy
 on:
     schedule:
         - cron: '0 0 */28 * *'
+    workflow_dispatch:
 
 
 jobs:
